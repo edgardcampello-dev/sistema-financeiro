@@ -1,0 +1,2 @@
+# V1 usa apenas biblioteca padrão do Python.
+# Este arquivo foi mantido para facilitar futuras integrações (ex.: leitura de XML/NF-e).
