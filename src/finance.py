@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from database import get_connection
+
+
+CENTAVOS = Decimal("100")
+
+
+def _valor_para_centavos(valor: float) -> int:
+    """Converte valor monetário para inteiro em centavos."""
+    valor_decimal = Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return int(valor_decimal * CENTAVOS)
+
+
+def _centavos_para_valor(valor_centavos: int) -> float:
+    """Converte inteiro em centavos para decimal em reais."""
+    return float(Decimal(valor_centavos) / CENTAVOS)
 
 
 def adicionar_lancamento(
@@ -22,13 +37,15 @@ def adicionar_lancamento(
     if valor < 0:
         raise ValueError("Valor não pode ser negativo.")
 
+    valor_centavos = _valor_para_centavos(valor)
+
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            INSERT INTO lancamentos (tipo, descricao, valor, data, categoria)
+            INSERT INTO lancamentos (tipo, descricao, valor_centavos, data, categoria)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (tipo_normalizado, descricao.strip(), valor, data.strip(), categoria.strip()),
+            (tipo_normalizado, descricao.strip(), valor_centavos, data.strip(), categoria.strip()),
         )
         conn.commit()
         return int(cursor.lastrowid)
@@ -39,13 +56,19 @@ def listar_lancamentos() -> list[dict[str, Any]]:
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT id, tipo, descricao, valor, data, categoria, criado_em
+            SELECT id, tipo, descricao, valor_centavos, data, categoria, criado_em
             FROM lancamentos
             ORDER BY data DESC, id DESC
             """
         ).fetchall()
 
-    return [dict(row) for row in rows]
+    return [
+        {
+            **dict(row),
+            "valor": _centavos_para_valor(int(row["valor_centavos"])),
+        }
+        for row in rows
+    ]
 
 
 def calcular_saldo() -> float:
@@ -54,15 +77,16 @@ def calcular_saldo() -> float:
         row = conn.execute(
             """
             SELECT
-                COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END), 0) AS total_entradas,
-                COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END), 0) AS total_saidas
+                COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor_centavos ELSE 0 END), 0) AS total_entradas_centavos,
+                COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor_centavos ELSE 0 END), 0) AS total_saidas_centavos
             FROM lancamentos
             """
         ).fetchone()
 
-    total_entradas = float(row["total_entradas"])
-    total_saidas = float(row["total_saidas"])
-    return total_entradas - total_saidas
+    total_entradas_centavos = int(row["total_entradas_centavos"])
+    total_saidas_centavos = int(row["total_saidas_centavos"])
+    saldo_centavos = total_entradas_centavos - total_saidas_centavos
+    return _centavos_para_valor(saldo_centavos)
 
 
 def listar_por_periodo(data_inicial: str, data_final: str) -> list[dict[str, Any]]:
@@ -73,7 +97,7 @@ def listar_por_periodo(data_inicial: str, data_final: str) -> list[dict[str, Any
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT id, tipo, descricao, valor, data, categoria, criado_em
+            SELECT id, tipo, descricao, valor_centavos, data, categoria, criado_em
             FROM lancamentos
             WHERE data BETWEEN ? AND ?
             ORDER BY data ASC, id ASC
@@ -81,7 +105,13 @@ def listar_por_periodo(data_inicial: str, data_final: str) -> list[dict[str, Any
             (data_inicial.strip(), data_final.strip()),
         ).fetchall()
 
-    return [dict(row) for row in rows]
+    return [
+        {
+            **dict(row),
+            "valor": _centavos_para_valor(int(row["valor_centavos"])),
+        }
+        for row in rows
+    ]
 
 
 def importar_nfe_xml(caminho_xml: str) -> dict[str, Any]:
