@@ -32,6 +32,54 @@ def init_db() -> None:
     with get_connection() as conn:
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS bi_99food_pedidos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pedido_id TEXT NOT NULL UNIQUE,
+                data_hora_pedido TEXT NOT NULL,
+                status TEXT NOT NULL,
+                tempo_preparo_min REAL NOT NULL DEFAULT 0,
+                tempo_entrega_min REAL NOT NULL DEFAULT 0,
+                arquivo_origem TEXT NOT NULL,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bi_99food_itens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pedido_id TEXT NOT NULL,
+                nome_item TEXT NOT NULL,
+                quantidade_vendida REAL NOT NULL DEFAULT 0,
+                receita_item REAL NOT NULL DEFAULT 0,
+                preco_medio REAL NOT NULL DEFAULT 0,
+                arquivo_origem TEXT NOT NULL,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (pedido_id) REFERENCES bi_99food_pedidos(pedido_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_bi_99food_pedidos_data_hora
+            ON bi_99food_pedidos(data_hora_pedido)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_bi_99food_itens_pedido_id
+            ON bi_99food_itens(pedido_id)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_bi_99food_itens_nome_item
+            ON bi_99food_itens(nome_item)
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS lancamentos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tipo TEXT NOT NULL CHECK(tipo IN ('entrada', 'saida')),
