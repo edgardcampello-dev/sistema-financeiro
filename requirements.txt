@@ -1,2 +1,3 @@
-# V1 usa apenas biblioteca padrão do Python.
-# Este arquivo foi mantido para facilitar futuras integrações (ex.: leitura de XML/NF-e).
+flask>=3.0.0
+pandas>=2.0.0
+openpyxl>=3.1.0

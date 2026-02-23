@@ -1,0 +1,78 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fb;
+  color: #1b2430;
+}
+
+.topbar {
+  padding: 1rem 2rem;
+  background: #1f3f7f;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar nav a {
+  color: white;
+  margin-left: 1rem;
+  text-decoration: none;
+}
+
+.container {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+button {
+  background: #1f3f7f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  padding: 0.75rem;
+  border: 1px solid #dde3ee;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi span {
+  margin-top: 0.4rem;
+  font-size: 1.15rem;
+}
+
+.muted {
+  color: #69758a;
+}

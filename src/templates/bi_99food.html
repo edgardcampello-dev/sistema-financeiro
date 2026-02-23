@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}BI 99Food{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Importação 99Food</h2>
+  <form id="uploadForm" class="grid-form">
+    <input type="file" name="arquivos" id="arquivos" multiple accept=".xlsx,.xls" />
+    <button type="submit">Enviar arquivos</button>
+  </form>
+  <p class="muted">Suporta relatório de pedidos e relatório de itens.</p>
+  <p id="uploadStatus"></p>
+</section>
+
+<section class="card">
+  <h2>Filtros</h2>
+  <form id="filtroForm" class="grid-form">
+    <label>Data inicial <input type="date" id="dataInicial" /></label>
+    <label>Data final <input type="date" id="dataFinal" /></label>
+    <label>Produto
+      <select id="produto">
+        <option value="">Todos</option>
+        {% for p in dashboard.produtos.filtro %}
+          <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Aplicar</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>KPIs</h2>
+  <div class="kpi-grid" id="kpis"></div>
+</section>
+
+<section class="card">
+  <h2>Gráficos (visão tabular)</h2>
+  <div id="graficos"></div>
+</section>
+
+<section class="card">
+  <h2>Produtos</h2>
+  <div id="produtos"></div>
+</section>
+
+<script>
+  async function carregarDashboard(params = new URLSearchParams()) {
+    const response = await fetch(`/bi/99food/dashboard?${params.toString()}`);
+    const data = await response.json();
+
+    const kpis = data.kpis;
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><strong>Faturamento total</strong><span>R$ ${Number(kpis.faturamento_total).toFixed(2)}</span></div>
+      <div class="kpi"><strong>Total de pedidos</strong><span>${kpis.total_pedidos}</span></div>
+      <div class="kpi"><strong>Ticket médio</strong><span>R$ ${Number(kpis.ticket_medio).toFixed(2)}</span></div>
+      <div class="kpi"><strong>Total de itens vendidos</strong><span>${Number(kpis.total_itens_vendidos).toFixed(0)}</span></div>
+    `;
+
+    document.getElementById('graficos').innerHTML = `
+      <h3>Faturamento por dia</h3><pre>${JSON.stringify(data.graficos.faturamento_por_dia, null, 2)}</pre>
+      <h3>Pedidos por hora</h3><pre>${JSON.stringify(data.graficos.pedidos_por_hora, null, 2)}</pre>
+      <h3>Vendas por dia da semana</h3><pre>${JSON.stringify(data.graficos.vendas_por_dia_semana, null, 2)}</pre>
+    `;
+
+    document.getElementById('produtos').innerHTML = `
+      <h3>Ranking por faturamento</h3><pre>${JSON.stringify(data.produtos.ranking_faturamento, null, 2)}</pre>
+      <h3>Ranking por quantidade</h3><pre>${JSON.stringify(data.produtos.ranking_quantidade, null, 2)}</pre>
+    `;
+  }
+
+  document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    const files = document.getElementById('arquivos').files;
+    for (const file of files) {
+      formData.append('arquivos', file);
+    }
+
+    const response = await fetch('/bi/99food/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await response.json();
+    document.getElementById('uploadStatus').textContent = JSON.stringify(result);
+
+    await carregarDashboard();
+  });
+
+  document.getElementById('filtroForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const params = new URLSearchParams();
+    const dataInicial = document.getElementById('dataInicial').value;
+    const dataFinal = document.getElementById('dataFinal').value;
+    const produto = document.getElementById('produto').value;
+
+    if (dataInicial) params.append('data_inicial', dataInicial);
+    if (dataFinal) params.append('data_final', dataFinal);
+    if (produto) params.append('produto', produto);
+
+    await carregarDashboard(params);
+  });
+
+  carregarDashboard();
+</script>
+{% endblock %}
